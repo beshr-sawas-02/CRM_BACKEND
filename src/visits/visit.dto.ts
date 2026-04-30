@@ -1,4 +1,4 @@
-import { IsString, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsDateString, IsEmail } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VisitStatus } from './visit.schema';
 
@@ -15,6 +15,11 @@ export class CreateVisitDto {
   @IsString()
   phone: string;
 
+  @ApiPropertyOptional({ example: 'info@company.com' })
+  @IsOptional()
+  @IsEmail({}, { message: 'البريد الإلكتروني غير صحيح' })
+  email?: string;
+
   @ApiProperty({ example: 'الرياض' })
   @IsString()
   city: string;
@@ -30,6 +35,61 @@ export class CreateVisitDto {
   @ApiProperty({ enum: VisitStatus, example: VisitStatus.INTERESTED })
   @IsEnum(VisitStatus)
   status: VisitStatus;
+
+  @ApiPropertyOptional({ example: '2024-01-15' })
+  @IsOptional()
+  @IsDateString()
+  visitDate?: string;
+
+  @ApiPropertyOptional({ example: '10:30' })
+  @IsOptional()
+  @IsString()
+  visitTime?: string;
+}
+
+// DTO لتحديث حالة الزيارة فقط
+export class UpdateVisitStatusDto {
+  @ApiProperty({ enum: VisitStatus, example: VisitStatus.CONFIRMED })
+  @IsEnum(VisitStatus)
+  status: VisitStatus;
+}
+
+// ✅ جديد - DTO لتعديل بيانات الزيارة الكاملة (للأدمن فقط)
+export class UpdateVisitDto {
+  @ApiPropertyOptional({ example: 'شركة النور للتجارة' })
+  @IsOptional()
+  @IsString()
+  companyName?: string;
+
+  @ApiPropertyOptional({ example: 'محمد عبدالله' })
+  @IsOptional()
+  @IsString()
+  contactPerson?: string;
+
+  @ApiPropertyOptional({ example: '0501234567' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiPropertyOptional({ example: 'info@company.com' })
+  @IsOptional()
+  @IsEmail({}, { message: 'البريد الإلكتروني غير صحيح' })
+  email?: string;
+
+  @ApiPropertyOptional({ example: 'الرياض' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'مواد بناء' })
+  @IsOptional()
+  @IsString()
+  businessType?: string;
+
+  @ApiPropertyOptional({ example: 'تمت مقابلة المدير...' })
+  @IsOptional()
+  @IsString()
+  summary?: string;
 
   @ApiPropertyOptional({ example: '2024-01-15' })
   @IsOptional()

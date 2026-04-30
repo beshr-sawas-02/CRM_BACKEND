@@ -7,6 +7,7 @@ export enum VisitStatus {
   INTERESTED = 'interested',
   FOLLOW_UP = 'follow_up',
   NOT_INTERESTED = 'not_interested',
+  CONFIRMED = 'confirmed', // ✅ جديد - الزيارة مثبتة (جاهزة لإنشاء عقد)
 }
 
 @Schema({ timestamps: true })
@@ -20,6 +21,10 @@ export class Visit {
 
   @Prop({ required: true, trim: true })
   phone: string;
+
+  // ✅ جديد - إيميل الشركة (اختياري)
+  @Prop({ trim: true, lowercase: true })
+  email?: string;
 
   @Prop({ required: true, trim: true })
   city: string;
@@ -46,6 +51,10 @@ export class Visit {
 
   @Prop({ required: true })
   visitTime: string;
+
+  // ✅ جديد - يُملأ تلقائياً عند إنشاء عقد لهذه الزيارة
+  @Prop({ type: Types.ObjectId, ref: 'Contract', default: null })
+  contract?: Types.ObjectId;
 }
 
 export const VisitSchema = SchemaFactory.createForClass(Visit);

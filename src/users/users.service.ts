@@ -11,6 +11,7 @@ export class UpdateUserDto {
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsEnum(UserRole) role?: UserRole;
   @ApiPropertyOptional() @IsOptional() isActive?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MinLength(6) password?: string;  // ⬅️ أضف هذا
 }
 
 export class ChangePasswordDto {
@@ -32,10 +33,15 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto) {
-    const user = await this.userModel.findByIdAndUpdate(id, dto, { new: true }).select('-password');
-    if (!user) throw new NotFoundException('المستخدم غير موجود');
-    return user;
+  // إذا كان في كلمة مرور، اعمل لها hash أولاً
+  if (dto.password) {
+    dto.password = await bcrypt.hash(dto.password, 10);
   }
+  
+  const user = await this.userModel.findByIdAndUpdate(id, dto, { new: true }).select('-password');
+  if (!user) throw new NotFoundException('المستخدم غير موجود');
+  return user;
+}
 
   async changePassword(id: string, dto: ChangePasswordDto) {
     const hashed = await bcrypt.hash(dto.newPassword, 10);

@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Visit, VisitDocument } from './visit.schema';
-import { CreateVisitDto, FilterVisitsDto } from './visit.dto';
+import { Visit, VisitDocument, VisitStatus } from './visit.schema';
+import { CreateVisitDto, FilterVisitsDto, UpdateVisitDto } from './visit.dto';
 
 @Injectable()
 export class VisitsService {
@@ -42,23 +42,89 @@ export class VisitsService {
   }
 
   async findById(id: string): Promise<Visit> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('معرف الزيارة غير صحيح');
+    }
     const visit = await this.visitModel.findById(id).lean();
     if (!visit) throw new NotFoundException('الزيارة غير موجودة');
     return visit;
+  }
+
+  // تحديث حالة الزيارة (المندوب يقدر لزياراته فقط، الأدمن لأي زيارة)
+  async updateStatus(id: string, status: VisitStatus, userId: string, userRole: string): Promise<Visit> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('معرف الزيارة غير صحيح');
+    }
+
+    const visit = await this.visitModel.findById(id);
+    if (!visit) throw new NotFoundException('الزيارة غير موجودة');
+
+    if (userRole !== 'admin' && visit.agent.toString() !== userId) {
+      throw new ForbiddenException('ليس لديك صلاحية لتعديل هذه الزيارة');
+    }
+
+    if (visit.contract && visit.status === VisitStatus.CONFIRMED && status !== VisitStatus.CONFIRMED) {
+      throw new BadRequestException(
+        'لا يمكن تغيير حالة زيارة لها عقد مرتبط. احذف العقد أولاً.',
+      );
+    }
+
+    visit.status = status;
+    await visit.save();
+    return visit.toObject();
+  }
+
+  // ✅ جديد - تعديل بيانات الزيارة الكاملة (للأدمن فقط)
+  async update(id: string, dto: UpdateVisitDto): Promise<Visit> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('معرف الزيارة غير صحيح');
+    }
+
+    const visit = await this.visitModel.findById(id);
+    if (!visit) throw new NotFoundException('الزيارة غير موجودة');
+
+    // تحديث الحقول الموجودة في الـ DTO فقط
+    Object.entries(dto).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (key === 'visitDate' && typeof value === 'string') {
+          (visit as any)[key] = new Date(value);
+        } else {
+          (visit as any)[key] = value;
+        }
+      }
+    });
+
+    await visit.save();
+    return visit.toObject();
+  }
+
+  // ربط عقد بالزيارة
+  async linkContract(visitId: string, contractId: string): Promise<void> {
+    await this.visitModel.findByIdAndUpdate(visitId, {
+      contract: new Types.ObjectId(contractId),
+    });
+  }
+
+  // إزالة الربط
+  async unlinkContract(visitId: string): Promise<void> {
+    await this.visitModel.findByIdAndUpdate(visitId, {
+      $unset: { contract: 1 },
+    });
   }
 
   async getMyStats(agentId: string, period?: string) {
     const query: any = { agent: new Types.ObjectId(agentId) };
     this.applyPeriodFilter(query, period as any);
 
-    const [total, interested, followUp, notInterested] = await Promise.all([
+    const [total, interested, followUp, notInterested, confirmed] = await Promise.all([
       this.visitModel.countDocuments(query),
       this.visitModel.countDocuments({ ...query, status: 'interested' }),
       this.visitModel.countDocuments({ ...query, status: 'follow_up' }),
       this.visitModel.countDocuments({ ...query, status: 'not_interested' }),
+      this.visitModel.countDocuments({ ...query, status: 'confirmed' }),
     ]);
 
-    return { total, interested, followUp, notInterested };
+    return { total, interested, followUp, notInterested, confirmed };
   }
 
   async getTodayVisitsForAgent(agentId: string): Promise<Visit[]> {

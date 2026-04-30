@@ -72,9 +72,9 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-
+  await app.listen(port, '0.0.0.0');
   console.log(`\n🚀 Server running on: http://localhost:${port}`);
+  console.log(`📱 Local network:    http://172.20.10.2:${port}`);
   console.log(`📚 Swagger docs:     http://localhost:${port}/docs`);
   console.log(`🗄️  MongoDB URI:      ${process.env.MONGODB_URI}\n`);
 }
