@@ -8,8 +8,10 @@ import {
   Param,
   UseGuards,
   ParseIntPipe,
+  Res,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Response } from 'express';
 import { ContractsService } from './contracts.service';
 import {
   CreateContractDto,
@@ -63,11 +65,11 @@ export class ContractsController {
   }
 
   @Get('admin/stats')
-@Roles(UserRole.ADMIN)
-@ApiOperation({ summary: 'إحصائيات كل العقود (للمدير)' })
-getAdminStats() {
-  return this.contractsService.getAdminStats();
-}
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'إحصائيات كل العقود (للمدير)' })
+  getAdminStats() {
+    return this.contractsService.getAdminStats();
+  }
 
   // ===== Endpoints مشتركة =====
 
@@ -75,6 +77,32 @@ getAdminStats() {
   @ApiOperation({ summary: 'تفاصيل عقد' })
   findOne(@Param('id') id: string) {
     return this.contractsService.findById(id);
+  }
+
+  // ✅ جديد - تحميل العقد كملف PDF
+  @Get(':id/pdf')
+  @ApiOperation({ summary: 'تحميل العقد كملف PDF' })
+  async downloadPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.contractsService.generatePdf(
+      id,
+      user._id.toString(),
+      user.role,
+    );
+
+    const arabicFileName = `عقد_${Date.now()}.pdf`;
+    const asciiFallback = `contract_${Date.now()}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(arabicFileName)}`,
+      'Content-Length': buffer.length,
+    });
+
+    res.send(buffer);
   }
 
   @Patch(':id')

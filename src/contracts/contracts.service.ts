@@ -16,12 +16,15 @@ import {
 import { VisitsService } from '../visits/visits.service';
 import { VisitStatus } from '../visits/visit.schema';
 import { UserRole } from '../users/user.schema';
+import { ContractPdfService } from './pdf/contract-pdf.service';
 
 @Injectable()
 export class ContractsService {
   constructor(
     @InjectModel(Contract.name) private contractModel: Model<ContractDocument>,
     private visitsService: VisitsService,
+    private pdfService: ContractPdfService, // ✅ جديد
+
   ) {}
 
   // ✅ إنشاء عقد جديد - فقط للزيارات confirmed
@@ -103,6 +106,15 @@ export class ContractsService {
     if (!Types.ObjectId.isValid(visitId)) return null;
     return this.contractModel.findOne({ visit: new Types.ObjectId(visitId) }).lean();
   }
+
+  async generatePdf(id: string, userId: string, userRole: string): Promise<Buffer> {
+  const contract = await this.contractModel.findById(id);
+  if (!contract) throw new NotFoundException('العقد غير موجود');
+
+  this.checkPermission(contract, userId, userRole);
+
+  return this.pdfService.generateContractPdf(contract.toObject());
+}
 
   // ✅ تحديث بيانات العقد
   async update(id: string, dto: UpdateContractDto, userId: string, userRole: string): Promise<Contract> {
