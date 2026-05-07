@@ -5,81 +5,84 @@ export type ContractDocument = Contract & Document;
 
 export enum Currency {
   USD = 'USD',
-  SYP = 'SYP', // الليرة السورية
+  SYP = 'SYP',
 }
 
-// نظام الدفع لكل دفعة
 @Schema({ _id: false })
 export class Payment {
   @Prop({ required: true })
-  amount: number; // مبلغ هذه الدفعة
+  amount: number;
 
   @Prop({ default: false })
-  paid: boolean; // مدفوع / غير مدفوع
+  paid: boolean;
 
   @Prop({ default: null })
-  paidAt?: Date; // تاريخ الدفع (يُملأ تلقائياً عند تغيير الحالة لمدفوع)
+  paidAt?: Date;
 
   @Prop({ trim: true })
-  note?: string; // ملاحظة اختيارية على الدفعة
+  note?: string;
 }
 
 const PaymentSchema = SchemaFactory.createForClass(Payment);
 
 @Schema({ timestamps: true })
 export class Contract {
-  // ===== بيانات الشركة =====
+  // بيانات الشركة
   @Prop({ required: true, trim: true })
   companyName: string;
 
   @Prop({ required: true, trim: true })
-  ownerName: string; // اسم صاحب الشركة
+  ownerName: string;
 
   @Prop({ required: true, trim: true })
-  ownerPhone: string; // رقم صاحب الشركة
+  ownerPhone: string;
 
   @Prop({ trim: true, lowercase: true })
   email?: string;
 
   @Prop({ required: true, trim: true })
-  commercialNumber: string; // الرقم التجاري
+  commercialNumber: string;
 
   @Prop({ required: true, trim: true })
-  commercialRegister: string; // السجل التجاري
+  commercialRegister: string;
 
   @Prop({ required: true, trim: true })
-  businessType: string; // نوع نشاط الشركة
+  businessType: string;
 
-  // ===== بيانات العقد =====
+  // بيانات العقد
   @Prop({ required: true })
-  totalAmount: number; // المبلغ الإجمالي
+  totalAmount: number;
 
   @Prop({ required: true, enum: Currency, default: Currency.USD })
   currency: Currency;
 
   @Prop({ type: [PaymentSchema], default: [] })
-  payments: Payment[]; // قائمة الدفعات
+  payments: Payment[];
 
   @Prop({ trim: true })
-  notes?: string; // ملاحظات على العقد
+  notes?: string;
 
-  // ===== مراجع =====
+  // ✅ جديد - المعرض المرتبط (مطلوب)
+  @Prop({ type: Types.ObjectId, ref: 'Exhibition', required: true })
+  exhibition: Types.ObjectId;
+
+  // مراجع
   @Prop({ type: Types.ObjectId, ref: 'Visit', required: true })
-  visit: Types.ObjectId; // الزيارة المرتبطة
+  visit: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  agent: Types.ObjectId; // المندوب الذي أنشأ العقد
+  agent: Types.ObjectId;
 
   @Prop({ required: true })
   agentName: string;
 
   @Prop({ default: () => new Date() })
-  contractDate: Date; // تاريخ العقد
+  contractDate: Date;
 }
 
 export const ContractSchema = SchemaFactory.createForClass(Contract);
 
-// Indexes
 ContractSchema.index({ agent: 1, contractDate: -1 });
-ContractSchema.index({ visit: 1 }, { unique: true }); // كل زيارة لها عقد واحد فقط
+ContractSchema.index({ visit: 1 }, { unique: true });
+ContractSchema.index({ exhibition: 1 }); // ✅ جديد
 ContractSchema.index({ companyName: 'text' });

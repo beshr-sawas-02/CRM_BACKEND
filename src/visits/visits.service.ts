@@ -13,8 +13,14 @@ export class VisitsService {
     const visitDate = dto.visitDate ? new Date(dto.visitDate) : now;
     const visitTime = dto.visitTime || now.toTimeString().slice(0, 5);
 
+    // ✅ تحويل معرفات المعارض من string إلى ObjectId
+    const exhibitions = (dto.exhibitions || []).map(
+      (id) => new Types.ObjectId(id),
+    );
+
     const visit = await this.visitModel.create({
       ...dto,
+      exhibitions,
       agent: new Types.ObjectId(agentId),
       agentName,
       visitDate,
@@ -28,8 +34,16 @@ export class VisitsService {
     this.applyPeriodFilter(query, filter.period);
     if (filter.status) query.status = filter.status;
     if (filter.city) query.city = new RegExp(filter.city, 'i');
+    // ✅ فلترة حسب معرض
+    if (filter.exhibition) {
+      query.exhibitions = new Types.ObjectId(filter.exhibition);
+    }
 
-    return this.visitModel.find(query).sort({ visitDate: -1 }).lean();
+    return this.visitModel
+      .find(query)
+      .populate('exhibitions', 'name')
+      .sort({ visitDate: -1 })
+      .lean();
   }
 
   async findAll(filter: FilterVisitsDto): Promise<Visit[]> {
@@ -37,20 +51,29 @@ export class VisitsService {
     this.applyPeriodFilter(query, filter.period);
     if (filter.status) query.status = filter.status;
     if (filter.city) query.city = new RegExp(filter.city, 'i');
+    if (filter.exhibition) {
+      query.exhibitions = new Types.ObjectId(filter.exhibition);
+    }
 
-    return this.visitModel.find(query).sort({ visitDate: -1 }).lean();
+    return this.visitModel
+      .find(query)
+      .populate('exhibitions', 'name')
+      .sort({ visitDate: -1 })
+      .lean();
   }
 
   async findById(id: string): Promise<Visit> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('معرف الزيارة غير صحيح');
     }
-    const visit = await this.visitModel.findById(id).lean();
+    const visit = await this.visitModel
+      .findById(id)
+      .populate('exhibitions', 'name')
+      .lean();
     if (!visit) throw new NotFoundException('الزيارة غير موجودة');
     return visit;
   }
 
-  // تحديث حالة الزيارة (المندوب يقدر لزياراته فقط، الأدمن لأي زيارة)
   async updateStatus(id: string, status: VisitStatus, userId: string, userRole: string): Promise<Visit> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('معرف الزيارة غير صحيح');
@@ -74,7 +97,7 @@ export class VisitsService {
     return visit.toObject();
   }
 
-  // ✅ جديد - تعديل بيانات الزيارة الكاملة (للأدمن فقط)
+  // تعديل بيانات الزيارة (للأدمن فقط)
   async update(id: string, dto: UpdateVisitDto): Promise<Visit> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('معرف الزيارة غير صحيح');
@@ -83,11 +106,13 @@ export class VisitsService {
     const visit = await this.visitModel.findById(id);
     if (!visit) throw new NotFoundException('الزيارة غير موجودة');
 
-    // تحديث الحقول الموجودة في الـ DTO فقط
     Object.entries(dto).forEach(([key, value]) => {
       if (value !== undefined) {
         if (key === 'visitDate' && typeof value === 'string') {
           (visit as any)[key] = new Date(value);
+        } else if (key === 'exhibitions' && Array.isArray(value)) {
+          // ✅ تحويل معرفات المعارض
+          (visit as any)[key] = value.map((id: string) => new Types.ObjectId(id));
         } else {
           (visit as any)[key] = value;
         }
@@ -98,14 +123,12 @@ export class VisitsService {
     return visit.toObject();
   }
 
-  // ربط عقد بالزيارة
   async linkContract(visitId: string, contractId: string): Promise<void> {
     await this.visitModel.findByIdAndUpdate(visitId, {
       contract: new Types.ObjectId(contractId),
     });
   }
 
-  // إزالة الربط
   async unlinkContract(visitId: string): Promise<void> {
     await this.visitModel.findByIdAndUpdate(visitId, {
       $unset: { contract: 1 },

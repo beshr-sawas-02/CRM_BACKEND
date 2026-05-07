@@ -1,4 +1,12 @@
-import { IsString, IsEnum, IsOptional, IsDateString, IsEmail } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+  IsEmail,
+  IsArray,
+  IsMongoId,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { VisitStatus } from './visit.schema';
 
@@ -28,13 +36,24 @@ export class CreateVisitDto {
   @IsString()
   businessType: string;
 
-  @ApiProperty({ example: 'تمت مقابلة المدير وأبدى اهتماماً بالمشاركة في معرض البناء' })
+  @ApiProperty({ example: 'تمت مقابلة المدير...' })
   @IsString()
   summary: string;
 
   @ApiProperty({ enum: VisitStatus, example: VisitStatus.INTERESTED })
   @IsEnum(VisitStatus)
   status: VisitStatus;
+
+  // ✅ جديد - مصفوفة معارض (اختياري)
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['67890abc...', '67891def...'],
+    description: 'معرفات المعارض المهتمة بها الشركة',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsMongoId({ each: true, message: 'معرف معرض غير صحيح' })
+  exhibitions?: string[];
 
   @ApiPropertyOptional({ example: '2024-01-15' })
   @IsOptional()
@@ -47,56 +66,60 @@ export class CreateVisitDto {
   visitTime?: string;
 }
 
-// DTO لتحديث حالة الزيارة فقط
 export class UpdateVisitStatusDto {
   @ApiProperty({ enum: VisitStatus, example: VisitStatus.CONFIRMED })
   @IsEnum(VisitStatus)
   status: VisitStatus;
 }
 
-// ✅ جديد - DTO لتعديل بيانات الزيارة الكاملة (للأدمن فقط)
 export class UpdateVisitDto {
-  @ApiPropertyOptional({ example: 'شركة النور للتجارة' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   companyName?: string;
 
-  @ApiPropertyOptional({ example: 'محمد عبدالله' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   contactPerson?: string;
 
-  @ApiPropertyOptional({ example: '0501234567' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   phone?: string;
 
-  @ApiPropertyOptional({ example: 'info@company.com' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsEmail({}, { message: 'البريد الإلكتروني غير صحيح' })
   email?: string;
 
-  @ApiPropertyOptional({ example: 'الرياض' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   city?: string;
 
-  @ApiPropertyOptional({ example: 'مواد بناء' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   businessType?: string;
 
-  @ApiPropertyOptional({ example: 'تمت مقابلة المدير...' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   summary?: string;
 
-  @ApiPropertyOptional({ example: '2024-01-15' })
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsMongoId({ each: true })
+  exhibitions?: string[];
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsDateString()
   visitDate?: string;
 
-  @ApiPropertyOptional({ example: '10:30' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   visitTime?: string;
@@ -117,4 +140,10 @@ export class FilterVisitsDto {
   @IsOptional()
   @IsString()
   city?: string;
+
+  // ✅ جديد - فلترة حسب معرض
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  exhibition?: string;
 }

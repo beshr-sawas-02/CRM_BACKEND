@@ -15,14 +15,13 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Currency } from './contract.schema';
 
-// DTO لكل دفعة
 export class PaymentDto {
-  @ApiProperty({ example: 2500, description: 'مبلغ الدفعة' })
+  @ApiProperty({ example: 2500 })
   @IsNumber()
   @Min(0)
   amount: number;
 
-  @ApiPropertyOptional({ example: false, description: 'مدفوع أم لا' })
+  @ApiPropertyOptional({ example: false })
   @IsOptional()
   @IsBoolean()
   paid?: boolean;
@@ -33,14 +32,19 @@ export class PaymentDto {
   note?: string;
 }
 
-// DTO لإنشاء عقد جديد
 export class CreateContractDto {
-  // ===== الزيارة =====
-  @ApiProperty({ example: '67890abc...', description: 'معرّف الزيارة المرتبطة' })
+  @ApiProperty({ example: '67890abc...' })
   @IsMongoId({ message: 'معرف الزيارة غير صحيح' })
   visitId: string;
 
-  // ===== بيانات الشركة =====
+  // ✅ جديد - معرف المعرض (مطلوب)
+  @ApiProperty({
+    example: '67891def...',
+    description: 'معرف المعرض الذي ستشارك فيه الشركة',
+  })
+  @IsMongoId({ message: 'معرف المعرض غير صحيح' })
+  exhibitionId: string;
+
   @ApiProperty({ example: 'شركة النور للتجارة' })
   @IsString()
   companyName: string;
@@ -70,7 +74,6 @@ export class CreateContractDto {
   @IsString()
   businessType: string;
 
-  // ===== بيانات العقد =====
   @ApiProperty({ example: 10000 })
   @IsNumber()
   @Min(0)
@@ -80,29 +83,25 @@ export class CreateContractDto {
   @IsEnum(Currency)
   currency: Currency;
 
-  @ApiProperty({
-    type: [PaymentDto],
-    example: [
-      { amount: 2500, paid: true },
-      { amount: 2500, paid: false },
-      { amount: 2500, paid: false },
-      { amount: 2500, paid: false },
-    ],
-  })
+  @ApiProperty({ type: [PaymentDto] })
   @IsArray()
-  @ArrayMinSize(1, { message: 'يجب إضافة دفعة واحدة على الأقل' })
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => PaymentDto)
   payments: PaymentDto[];
 
-  @ApiPropertyOptional({ example: 'العقد ساري المفعول لمدة سنة' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   notes?: string;
 }
 
-// DTO لتحديث بيانات العقد
 export class UpdateContractDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsMongoId()
+  exhibitionId?: string; // ✅ جديد
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -162,13 +161,12 @@ export class UpdateContractDto {
   notes?: string;
 }
 
-// DTO لتحديث حالة دفعة محددة
 export class UpdatePaymentStatusDto {
-  @ApiProperty({ example: true, description: 'مدفوع أم لا' })
+  @ApiProperty({ example: true })
   @IsBoolean()
   paid: boolean;
 
-  @ApiPropertyOptional({ example: 'تم الدفع عبر التحويل البنكي' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   note?: string;

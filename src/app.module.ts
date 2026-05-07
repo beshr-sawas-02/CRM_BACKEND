@@ -7,7 +7,8 @@ import { VisitsModule } from './visits/visits.module';
 import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ExportModule } from './export/export.module';
-import { ContractsModule } from './contracts/contracts.module'; // ✅ جديد
+import { ContractsModule } from './contracts/contracts.module';
+import { ExhibitionsModule } from './exhibitions/exhibitions.module'; // ✅ جديد
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { ContractsModule } from './contracts/contracts.module'; // ✅ جديد
     ReportsModule,
     DashboardModule,
     ExportModule,
-    ContractsModule, // ✅ جديد
+    ContractsModule,
+    ExhibitionsModule, // ✅ جديد
   ],
 })
 export class AppModule {}

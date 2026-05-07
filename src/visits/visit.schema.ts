@@ -7,7 +7,7 @@ export enum VisitStatus {
   INTERESTED = 'interested',
   FOLLOW_UP = 'follow_up',
   NOT_INTERESTED = 'not_interested',
-  CONFIRMED = 'confirmed', // ✅ جديد - الزيارة مثبتة (جاهزة لإنشاء عقد)
+  CONFIRMED = 'confirmed',
 }
 
 @Schema({ timestamps: true })
@@ -22,7 +22,6 @@ export class Visit {
   @Prop({ required: true, trim: true })
   phone: string;
 
-  // ✅ جديد - إيميل الشركة (اختياري)
   @Prop({ trim: true, lowercase: true })
   email?: string;
 
@@ -39,6 +38,10 @@ export class Visit {
   @Prop({ required: true, enum: VisitStatus })
   status: VisitStatus;
 
+  // ✅ جديد - مصفوفة معارض الشركة المهتمة بها (multi-select)
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Exhibition' }], default: [] })
+  exhibitions: Types.ObjectId[];
+
   // Auto Fields
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   agent: Types.ObjectId;
@@ -52,15 +55,14 @@ export class Visit {
   @Prop({ required: true })
   visitTime: string;
 
-  // ✅ جديد - يُملأ تلقائياً عند إنشاء عقد لهذه الزيارة
   @Prop({ type: Types.ObjectId, ref: 'Contract', default: null })
   contract?: Types.ObjectId;
 }
 
 export const VisitSchema = SchemaFactory.createForClass(Visit);
 
-// Index for fast queries
 VisitSchema.index({ agent: 1, visitDate: -1 });
 VisitSchema.index({ status: 1 });
 VisitSchema.index({ city: 1 });
 VisitSchema.index({ visitDate: -1 });
+VisitSchema.index({ exhibitions: 1 }); // ✅ جديد - للفلترة بالمعرض
