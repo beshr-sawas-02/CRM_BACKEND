@@ -23,11 +23,7 @@ export class ExhibitionsService {
 
   // ✅ إنشاء معرض جديد
   async create(dto: CreateExhibitionDto): Promise<Exhibition> {
-    const exhibition = await this.exhibitionModel.create({
-      ...dto,
-      startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-    });
+    const exhibition = await this.exhibitionModel.create(dto);
     return exhibition.toObject();
   }
 
@@ -55,11 +51,7 @@ export class ExhibitionsService {
 
     Object.entries(dto).forEach(([key, value]) => {
       if (value !== undefined) {
-        if ((key === 'startDate' || key === 'endDate') && typeof value === 'string') {
-          (exhibition as any)[key] = new Date(value);
-        } else {
-          (exhibition as any)[key] = value;
-        }
+        (exhibition as any)[key] = value;
       }
     });
 
@@ -67,7 +59,7 @@ export class ExhibitionsService {
     return exhibition.toObject();
   }
 
-  // ✅ حذف معرض - مع تحقق ذكي
+  // ✅ حذف معرض - مع تحقق ذكي (Soft Delete)
   async remove(id: string, force: boolean = false): Promise<{ deleted: boolean; message: string }> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('معرف المعرض غير صحيح');
@@ -130,7 +122,7 @@ export class ExhibitionsService {
     return { buffer, exhibitionName: exhibition.name };
   }
 
-  // ✅ التحقق من أن مصفوفة معارض موجودة وكلها active (للاستخدام من Visits/Contracts)
+  // ✅ التحقق من أن مصفوفة معارض موجودة وكلها active
   async validateExhibitions(ids: string[]): Promise<void> {
     if (!ids || ids.length === 0) return;
 
