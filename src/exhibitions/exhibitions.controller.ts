@@ -25,14 +25,10 @@ import { UserRole } from '../users/user.schema';
 export class ExhibitionsController {
   constructor(private exhibitionsService: ExhibitionsService) {}
 
-  // ===== كل المستخدمين =====
-
   @Get()
-  @ApiOperation({ summary: 'قائمة المعارض (المندوب يرى النشطة فقط، الأدمن يرى الكل)' })
+  @ApiOperation({ summary: 'قائمة المعارض' })
   @ApiQuery({ name: 'all', required: false, type: Boolean })
   findAll(@CurrentUser() user: any, @Query('all') all?: string) {
-    // المندوب: يرى النشطة فقط
-    // الأدمن: افتراضياً يرى الكل، إلا لو طلب all=false
     const showAll = user.role === UserRole.ADMIN && all !== 'false';
     return this.exhibitionsService.findAll(!showAll);
   }
@@ -41,6 +37,16 @@ export class ExhibitionsController {
   @ApiOperation({ summary: 'تفاصيل معرض' })
   findOne(@Param('id') id: string) {
     return this.exhibitionsService.findById(id);
+  }
+
+  // ✅ جديد - زياراتي في معرض معين (للمندوب)
+  @Get(':id/my-visits')
+  @ApiOperation({ summary: 'زياراتي في معرض معين' })
+  getMyVisitsForExhibition(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.exhibitionsService.getMyVisitsForExhibition(
+      id,
+      user._id.toString(),
+    );
   }
 
   // ===== الأدمن فقط =====
@@ -61,10 +67,8 @@ export class ExhibitionsController {
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({
-    summary: 'حذف معرض (للأدمن فقط) - يفشل لو في زيارات/عقود مرتبطة',
-  })
-  @ApiQuery({ name: 'force', required: false, type: Boolean, description: 'force=true يخفي بدلاً من حذف' })
+  @ApiOperation({ summary: 'حذف معرض (للأدمن فقط)' })
+  @ApiQuery({ name: 'force', required: false, type: Boolean })
   remove(@Param('id') id: string, @Query('force') force?: string) {
     return this.exhibitionsService.remove(id, force === 'true');
   }
@@ -80,13 +84,15 @@ export class ExhibitionsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'تصدير زيارات معرض معين إلى Excel (للأدمن)' })
   async exportExhibitionVisits(@Param('id') id: string, @Res() res: Response) {
-    const { buffer, exhibitionName } = await this.exhibitionsService.exportExhibitionVisits(id);
+    const { buffer, exhibitionName } =
+      await this.exhibitionsService.exportExhibitionVisits(id);
 
     const arabicFileName = `زيارات_${exhibitionName}_${Date.now()}.xlsx`;
     const asciiFallback = `exhibition_visits_${Date.now()}.xlsx`;
 
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(arabicFileName)}`,
     });
     res.send(buffer);

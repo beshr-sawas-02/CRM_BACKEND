@@ -13,7 +13,6 @@ export class VisitsService {
     const visitDate = dto.visitDate ? new Date(dto.visitDate) : now;
     const visitTime = dto.visitTime || now.toTimeString().slice(0, 5);
 
-    // ✅ تحويل معرفات المعارض من string إلى ObjectId
     const exhibitions = (dto.exhibitions || []).map(
       (id) => new Types.ObjectId(id),
     );
@@ -29,21 +28,57 @@ export class VisitsService {
     return visit;
   }
 
+  // ✅ helper لإضافة أسماء المعارض
+  private async populateExhibitions(visits: any[]): Promise<any[]> {
+    if (!visits || visits.length === 0) return visits;
+
+    const allIds = new Set<string>();
+    visits.forEach((v: any) => {
+      (v.exhibitions || []).forEach((id: any) => {
+        allIds.add(id.toString());
+      });
+    });
+
+    if (allIds.size === 0) return visits;
+
+    const exhibitionsArr = await this.visitModel.db
+      .collection('exhibitions')
+      .find({
+        _id: {
+          $in: Array.from(allIds).map((id) => new Types.ObjectId(id)),
+        },
+      })
+      .project({ name: 1 })
+      .toArray();
+
+    const map = new Map(
+      exhibitionsArr.map((e: any) => [e._id.toString(), e.name]),
+    );
+
+    return visits.map((v: any) => ({
+      ...v,
+      exhibitions: (v.exhibitions || []).map((id: any) => ({
+        _id: id.toString(),
+        name: map.get(id.toString()) || 'معرض محذوف',
+      })),
+    }));
+  }
+
   async findMyVisits(agentId: string, filter: FilterVisitsDto): Promise<Visit[]> {
     const query: any = { agent: new Types.ObjectId(agentId) };
     this.applyPeriodFilter(query, filter.period);
     if (filter.status) query.status = filter.status;
     if (filter.city) query.city = new RegExp(filter.city, 'i');
-    // ✅ فلترة حسب معرض
     if (filter.exhibition) {
       query.exhibitions = new Types.ObjectId(filter.exhibition);
     }
 
-    return this.visitModel
+    const visits = await this.visitModel
       .find(query)
-      .populate('exhibitions', 'name')
       .sort({ visitDate: -1 })
       .lean();
+
+    return this.populateExhibitions(visits) as any;
   }
 
   async findAll(filter: FilterVisitsDto): Promise<Visit[]> {
@@ -55,23 +90,23 @@ export class VisitsService {
       query.exhibitions = new Types.ObjectId(filter.exhibition);
     }
 
-    return this.visitModel
+    const visits = await this.visitModel
       .find(query)
-      .populate('exhibitions', 'name')
       .sort({ visitDate: -1 })
       .lean();
+
+    return this.populateExhibitions(visits) as any;
   }
 
   async findById(id: string): Promise<Visit> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('معرف الزيارة غير صحيح');
     }
-    const visit = await this.visitModel
-      .findById(id)
-      .populate('exhibitions', 'name')
-      .lean();
+    const visit = await this.visitModel.findById(id).lean();
     if (!visit) throw new NotFoundException('الزيارة غير موجودة');
-    return visit;
+
+    const result = await this.populateExhibitions([visit]);
+    return result[0] as Visit;
   }
 
   async updateStatus(id: string, status: VisitStatus, userId: string, userRole: string): Promise<Visit> {
@@ -97,7 +132,6 @@ export class VisitsService {
     return visit.toObject();
   }
 
-  // تعديل بيانات الزيارة (للأدمن فقط)
   async update(id: string, dto: UpdateVisitDto): Promise<Visit> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('معرف الزيارة غير صحيح');
@@ -111,7 +145,6 @@ export class VisitsService {
         if (key === 'visitDate' && typeof value === 'string') {
           (visit as any)[key] = new Date(value);
         } else if (key === 'exhibitions' && Array.isArray(value)) {
-          // ✅ تحويل معرفات المعارض
           (visit as any)[key] = value.map((id: string) => new Types.ObjectId(id));
         } else {
           (visit as any)[key] = value;
