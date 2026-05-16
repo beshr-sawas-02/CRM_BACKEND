@@ -4,10 +4,11 @@
   "description": "CRM Backend for Exhibition Company",
   "scripts": {
     "build": "nest build",
-    "start": "node dist/main",
+    "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
-    "vercel-build": "nest build"
+    "seed": "ts-node src/seed.ts",
+    "start:debug": "nest start --debug --watch"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
