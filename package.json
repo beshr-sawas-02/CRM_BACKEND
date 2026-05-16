@@ -7,7 +7,6 @@
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
-    "vercel-build": "nest build",
     "seed": "ts-node src/seed.ts",
     "start:debug": "nest start --debug --watch"
   },
@@ -28,6 +27,7 @@
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
+    "puppeteer": "^24.43.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
@@ -38,6 +38,7 @@
     "@types/node": "^20.0.0",
     "@types/passport-jwt": "^3.0.8",
     "@types/passport-local": "^1.0.35",
+    "@types/puppeteer": "^5.4.7",
     "typescript": "^5.0.0"
   }
 }

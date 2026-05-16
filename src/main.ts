@@ -3,22 +3,21 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
-
-const server = express();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+  const app = await NestFactory.create(AppModule);
 
+  // CORS
   app.enableCors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
+  // Global prefix
   app.setGlobalPrefix('api/v1');
 
+  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -27,11 +26,14 @@ async function bootstrap() {
     }),
   );
 
+  // Global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  // Swagger setup
   const config = new DocumentBuilder()
     .setTitle('CRM Exhibitions API')
-    .setDescription(`
+    .setDescription(
+      `
 ## نظام إدارة زيارات المندوبين - شركة تنظيم المعارض
 
 ### الأدوار المتاحة:
@@ -42,7 +44,8 @@ async function bootstrap() {
 1. سجّل دخولك عبر \`POST /auth/login\`
 2. انسخ الـ token
 3. اضغط Authorize وأدخل: \`Bearer <token>\`
-    `)
+    `,
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('Auth', 'تسجيل الدخول والمصادقة')
@@ -68,9 +71,10 @@ async function bootstrap() {
     `,
   });
 
-  await app.init();
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`\n🚀 Server running on: http://localhost:${port}`);
+  console.log(`📚 Swagger docs:     http://localhost:${port}/docs`);
 }
 
 bootstrap();
-
-export default server;
