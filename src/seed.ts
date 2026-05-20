@@ -26,11 +26,11 @@ async function seed() {
   const users = [
     {
       name: 'مدير النظام',
-      email: 'admin@exhibitions.com',
-      password: await bcrypt.hash('Admin@123', 10),
+      email: 'admin@gmail.com',
+      password: await bcrypt.hash('admin@123', 10),
       role: 'admin',
       isActive: true,
-      phone: '0500000001',
+      phone: '0991598737',
     },
   ];
 
