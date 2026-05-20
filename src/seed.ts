@@ -32,30 +32,6 @@ async function seed() {
       isActive: true,
       phone: '0500000001',
     },
-    {
-      name: 'أحمد المندوب',
-      email: 'ahmed@exhibitions.com',
-      password: await bcrypt.hash('Agent@123', 10),
-      role: 'agent',
-      isActive: true,
-      phone: '0500000002',
-    },
-    {
-      name: 'سارة المندوبة',
-      email: 'sara@exhibitions.com',
-      password: await bcrypt.hash('Agent@123', 10),
-      role: 'agent',
-      isActive: true,
-      phone: '0500000003',
-    },
-    {
-      name: 'محمد المندوب',
-      email: 'mohammed@exhibitions.com',
-      password: await bcrypt.hash('Agent@123', 10),
-      role: 'agent',
-      isActive: true,
-      phone: '0500000004',
-    },
   ];
 
   for (const userData of users) {
@@ -68,14 +44,6 @@ async function seed() {
     console.log(`✅ Created: ${userData.name} (${userData.role}) - ${userData.email}`);
   }
 
-  console.log('\n🎉 Seed completed!\n');
-  console.log('📋 Login credentials:');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('👑 Admin:   admin@exhibitions.com    / Admin@123');
-  console.log('👤 Agent 1: ahmed@exhibitions.com    / Agent@123');
-  console.log('👤 Agent 2: sara@exhibitions.com     / Agent@123');
-  console.log('👤 Agent 3: mohammed@exhibitions.com / Agent@123');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   await mongoose.disconnect();
 }
